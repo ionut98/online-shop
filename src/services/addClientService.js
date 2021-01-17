@@ -1,6 +1,6 @@
 import { URI } from "./config";
 
-const registerClientService = async (newClient) => {
+const addClientService = async (newClient) => {
 
   const payload = JSON.stringify(newClient);
 
@@ -18,5 +18,5 @@ const registerClientService = async (newClient) => {
 };
 
 export {
-  registerClientService,
+  addClientService,
 };

@@ -8,6 +8,8 @@ import { Storefront } from '@material-ui/icons';
 
 import Clients from './components/Clients';
 import Products from './components/Products';
+import Orders from './components/Orders';
+import PlaceOrder from './components/PlaceOrder';
 
 const useStyles = makeStyles({
   centered: {
@@ -34,7 +36,7 @@ const App = () => {
             context => 
               <Grid item xs={12} className={classes.centered} onClick={() => context.setView('menu')}>
                 <Typography variant='h3' style={{ color: '#fff', marginTop: 40, cursor: 'pointer' }}>
-                  <Storefront style={{ fontSize: 30 }}/> <span className={classes.onlineStyle}>Online </span>Shopping
+                  <Storefront style={{ fontSize: 30 }}/> <span className={classes.onlineStyle}>Shop </span>BackOffice
                 </Typography>
               </Grid>
           }
@@ -50,9 +52,9 @@ const App = () => {
                 case 'products':
                   return <Products />;
                 case 'orders':
-                  return <Menu />;
+                  return <Orders />;
                 case 'place-order':
-                  return <Menu />;
+                  return <PlaceOrder />;
                 default:
                   return;
               }

@@ -1,10 +1,10 @@
 import { URI } from "./config";
 
-const addProductService = async (newProduct) => {
+const addOrderService = async (newOrder) => {
 
-  const payload = JSON.stringify(newProduct);
+  const payload = JSON.stringify(newOrder);
 
-  const response = await fetch(URI('products/add-new'), {
+  const response = await fetch(URI('orders/add-new'), {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -13,14 +13,10 @@ const addProductService = async (newProduct) => {
     body: payload,
   });
 
-  if (!response.ok) {
-    return 
-  }
-
   return response.ok;
 
 };
 
 export {
-  addProductService,
+  addOrderService,
 };

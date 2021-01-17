@@ -63,7 +63,7 @@ const Menu = () => {
           fullWidth
           onClick={() => setView('orders')}
         >
-          Orders
+          Ordered Products
         </Button>
       </Grid>
       <Grid item xs={12} className={classes.menuButtonContainer}>

@@ -17,9 +17,10 @@ import Remove from '@material-ui/icons/Remove';
 import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
-import { Grid, makeStyles, Typography } from '@material-ui/core';
+import { CircularProgress, Grid, makeStyles, Typography } from '@material-ui/core';
 import { getProductsService } from '../services/getProductsService';
 import { addProductService } from '../services/addProductService';
+import { ControlPoint } from '@material-ui/icons';
 
 const tableIcons = {
   Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -54,6 +55,7 @@ const Products = () => {
 
   const classes = useStyles();
   const [productsList, setProductsList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const columns = useMemo(() => [
     { 
@@ -80,7 +82,7 @@ const Products = () => {
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '25%',
         textAlign: 'left',
         paddingLeft: 10,
       },
@@ -98,6 +100,7 @@ const Products = () => {
         textAlign: 'left',
         paddingLeft: 10,
       },
+      type: 'numeric',
     },
     {
       title: 'Model', 
@@ -108,7 +111,7 @@ const Products = () => {
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '25%',
         textAlign: 'left',
         paddingLeft: 10,
       },
@@ -122,10 +125,11 @@ const Products = () => {
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '25%',
         textAlign: 'left',
         paddingLeft: 10,
       },
+      type: 'numeric',
     },
   ], []);
 
@@ -135,48 +139,50 @@ const Products = () => {
 
   const fetchProducts = async () => {
     const products = await getProductsService();
-    console.log(products);
-    // setClientsList(clients);
+    setProductsList(products);
+    setLoading(false);
   };
 
   const addProduct = (product) =>
     new Promise(async (resolve, reject) => {
       
-      // const addResult = await addProductService({
-      //   FirstName: author.FirstName,
-      //   LastName: author.LastName,
-      // });
+      const addResult = await addProductService({
+        ...product,
+        price: Math.floor(product.price),
+      });
     
-      // if (addResult) {
-      //   await fetchProducts();
-      //   return resolve();
-      // } else {
-      //   return reject();
-      // }
-
-      resolve('pac');
+      if (addResult) {
+        await fetchProducts();
+        return resolve();
+      } else {
+        return reject();
+      }
 
     });
 
   return (
     <Grid item container xs={12} className={classes.centered}>
-      <MaterialTable
-        options={{
-          actionsColumnIndex: 5,
-          search: true,
-        }}
-        icons={{
-          ...tableIcons,
-        }}
-        title={
-          <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Products</Typography>
-        }
-        editable={{
+      { !loading ?
+        <MaterialTable
+          options={{
+            actionsColumnIndex: 5,
+            search: true,
+          }}
+          icons={{
+            ...tableIcons,
+            Add: props => <ControlPoint style={{ color: '#5f9ea0' }} {...props}/>,
+          }}
+          title={
+            <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Products</Typography>
+          }
+          editable={{
             onRowAdd: newData => addProduct(newData),
           }}
-        columns={columns}
-        data={productsList}
-      />
+          columns={columns}
+          data={productsList}
+        />
+        : <CircularProgress style={{ color: '#fff' }} />
+      }
     </Grid>
   );
 

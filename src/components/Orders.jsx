@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo, useEffect, useState } from 'react';
+import React, { forwardRef, useMemo, useState } from 'react';
 
 import MaterialTable from 'material-table';
 
@@ -17,10 +17,10 @@ import Remove from '@material-ui/icons/Remove';
 import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
-import { Grid, makeStyles, Typography } from '@material-ui/core';
-
-import { getOrdersService } from '../services/getProductsService';
-import { deleteProductService } from '../services/deleteProductService';
+import { CircularProgress, Grid, InputAdornment, makeStyles, TextField, Typography } from '@material-ui/core';
+import { getOrderedProductsByCNPService } from '../services/getOrderedProductsByCNPService';
+import { Delete } from '@material-ui/icons';
+import { deleteOrderedProductService } from '../services/deleteOrderedProductService';
 
 const tableIcons = {
   Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -55,31 +55,63 @@ const Orders = () => {
 
   const classes = useStyles();
 
-  const [productsList, setProductsList] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [clientCNP, setClientCNP] = useState(null);
+  const [orderedProductsList, setOrderedProductsList] = useState([]);
+  
+  // stored in two states, for refetching, because before deleting some record,
+  // maybe you've edited the value of the text field, so it has to be stored the real CNP of the last fetch
+
+  const [clientCNP, setClientCNP] = useState('');
+  const [textInput, setTextInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const columns = useMemo(() => [
     { 
-      title: 'ID', 
-      field: 'productId',
-      editable: 'never',
+      title: 'OrderID', 
+      field: 'orderId',
       cellStyle: {
         width: '5%',
         textAlign: 'left',
-        paddingLeft: 50,
+        paddingLeft: 30,
       },
       headerStyle: {
         width: '5%',
         textAlign: 'left',
-        paddingLeft: 50,
+        paddingLeft: 30,
+      },
+    },
+    { 
+      title: 'Order Date', 
+      field: 'orderDate',
+      cellStyle: {
+        width: '20%',
+        textAlign: 'left',
+        paddingLeft: 30,
+      },
+      headerStyle: {
+        width: '20%',
+        textAlign: 'left',
+        paddingLeft: 30,
+      },
+    },
+    { 
+      title: 'ProductID', 
+      field: 'productId',
+      cellStyle: {
+        width: '5%',
+        textAlign: 'left',
+        paddingLeft: 30,
+      },
+      headerStyle: {
+        width: '5%',
+        textAlign: 'left',
+        paddingLeft: 30,
       },
     },
     { 
       title: 'Product Name', 
       field: 'productName',
       cellStyle: {
-        width: '25%',
+        width: '20%',
         textAlign: 'left',
         paddingLeft: 10,
       },
@@ -93,12 +125,12 @@ const Orders = () => {
       title: 'Price', 
       field: 'price',
       cellStyle: {
-        width: '20%',
+        width: '15%',
         textAlign: 'left',
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '15%',
         textAlign: 'left',
         paddingLeft: 10,
       },
@@ -107,80 +139,115 @@ const Orders = () => {
       title: 'Model', 
       field: 'model',
       cellStyle: {
-        width: '25%',
+        width: '15%',
         textAlign: 'left',
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '15%',
         textAlign: 'left',
         paddingLeft: 10,
       },
     },
-    { 
-      title: 'Product Code', 
-      field: 'productCode',
+    {
+      title: 'Quantity', 
+      field: 'itemsNo',
       cellStyle: {
-        width: '25%',
+        width: '10%',
         textAlign: 'left',
         paddingLeft: 10,
       },
       headerStyle: {
-        width: '20%',
+        width: '10%',
         textAlign: 'left',
         paddingLeft: 10,
       },
     },
   ], []);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const fetchOrderedProductsByCNP = async () => {
+    const result = await getOrderedProductsByCNPService(textInput);
 
-  const fetchProducts = async () => {
-    const products = await getProductsService();
-    console.log(products);
-    // setClientsList(clients);
+    if (result.success) {
+      setOrderedProductsList(result.data);
+    } else {
+      // when we delete the last element, it raises an error
+      if (result.msg.includes('any')) {
+        setOrderedProductsList([]);
+      }
+    }
   };
 
-  const addProduct = (product) =>
-    new Promise(async (resolve, reject) => {
-      
-      // const addResult = await addProductService({
-      //   FirstName: author.FirstName,
-      //   LastName: author.LastName,
-      // });
-    
-      // if (addResult) {
-      //   await fetchProducts();
-      //   return resolve();
-      // } else {
-      //   return reject();
-      // }
+  const deleteOrderedProduct = (oldData) =>
+  new Promise( async (resolve, reject) => {
 
-      resolve('pac');
-
+    const deleteResult = await deleteOrderedProductService({
+      // not displaying clientId on each ordered product but it's stored in the fetched list
+      clientId: orderedProductsList[0].clientId,
+      productId: oldData.productId,
     });
+
+    if (deleteResult) {
+      await fetchOrderedProductsByCNP(clientCNP);
+      return resolve();
+    } else {
+      return reject();
+    }
+
+  });
 
   return (
     <Grid item container xs={12} className={classes.centered}>
-      <MaterialTable
-        options={{
-          actionsColumnIndex: 5,
-          search: true,
-        }}
-        icons={{
-          ...tableIcons,
-        }}
-        title={
-          <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Products</Typography>
-        }
-        editable={{
-            onRowAdd: newData => addProduct(newData),
+      <Grid item xs={4} style={{ marginBottom: 20 }}>
+        <TextField
+          value={textInput}
+          onChange={(event) => setTextInput(event.target.value)}
+          variant='outlined'
+          onKeyUp={(event) => {
+            if (event.key === 'Enter') {
+              setOrderedProductsList([]);
+              setLoading(true);
+              setClientCNP(textInput);
+              fetchOrderedProductsByCNP(textInput);           
+              setTimeout(() => {
+                setLoading(false);
+              }, 1500);
+            }
           }}
-        columns={columns}
-        data={productsList}
-      />
+          fullWidth
+          label='Client CNP'
+          InputProps={{
+            endAdornment: (
+              <InputAdornment>
+                <Search />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Grid>
+        <Grid item xs={10} style={{ marginBottom: 30 }} className={classes.centered}>
+      { !loading ?
+          <MaterialTable
+            options={{
+              actionsColumnIndex: 7,
+              search: true,
+            }}
+            icons={{
+              ...tableIcons,
+              Delete: props => <Delete style={{ color: 'red' }} {...props} />,
+            }}
+            title={
+              <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Ordered Products</Typography>
+            }
+            editable={{
+              onRowDelete: oldData => deleteOrderedProduct(oldData),
+            }}
+            columns={columns}
+            data={orderedProductsList}
+          />
+          : <CircularProgress style={{ color: '#fff' }} />
+      }
+        </Grid>
     </Grid>
   );
 

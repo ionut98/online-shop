@@ -17,8 +17,11 @@ import Remove from '@material-ui/icons/Remove';
 import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
-import { Grid, makeStyles, Typography } from '@material-ui/core';
+import { CircularProgress, Grid, makeStyles, Typography } from '@material-ui/core';
 import { getClientsService } from '../services/getClientsService';
+import { addClientService } from '../services/addClientService';
+
+import PersonAdd from '@material-ui/icons/PersonAdd';
 
 const tableIcons = {
   Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -46,6 +49,7 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 50,
+    marginBottom: 30,
   },
 });
 
@@ -53,11 +57,13 @@ const Clients = () => {
 
   const classes = useStyles();
   const [clientsList, setClientsList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const columns = useMemo(() => [
     { 
       title: 'ID', 
       field: 'clientId',
+      editable: 'never',
       cellStyle: {
         width: '5%',
         textAlign: 'left',
@@ -148,23 +154,60 @@ const Clients = () => {
   const fetchClients = async () => {
     const clients = await getClientsService();
     setClientsList(clients);
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
   };
 
+  const addClient = (client) =>
+  new Promise(async (resolve, reject) => {
+    
+    if (
+      !isNaN(Number(client.phoneNumber)) &&
+      !clientsList.map(client => client.cnp).includes(client.cnp) &&
+      client.cnp.length === 13 &&
+      client.email.length > 10 &&
+      client.email.includes('@') &&
+      client.email.includes('.') &&
+      client.firstName.length > 0 &&
+      client.lastName.length > 0
+    ) {
+      const addResult = await addClientService(client);
+      if (addResult) {
+        await fetchClients();
+        return resolve();
+      } else {
+        return reject();
+      }
+    } else {
+      return reject();
+    }
+
+  })
+
   return (
-    <Grid item container xs={12} className={classes.centered}>
-      <MaterialTable
-        options={{
-          search: true,
-        }}
-        icons={{
-          ...tableIcons,
-        }}
-        title={
-          <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Clients</Typography>
-        }
-        columns={columns}
-        data={clientsList}
-      />
+    <Grid item container xs={10} className={classes.centered}>
+      { !loading ?
+        <MaterialTable
+          options={{
+            search: true,
+            actionsColumnIndex: 6,
+          }}
+          icons={{
+            ...tableIcons,
+            Add: props => <PersonAdd style={{ color: '#5f9ea0' }} {...props}/>,
+          }}
+          title={
+            <Typography style={{ fontSize: 20, color: '#5f9ea0' }}>Clients</Typography>
+          }
+          columns={columns}
+          data={clientsList}
+          editable={{
+            onRowAdd: newData => addClient(newData), 
+          }}
+        />
+        : <CircularProgress style={{ color: '#fff' }}/>
+      }
     </Grid>
   );
 
